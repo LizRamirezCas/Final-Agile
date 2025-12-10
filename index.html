@@ -6,10 +6,10 @@
     <title>Gestor de Deudas</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
 
     <link rel="stylesheet" href="style.css">
+    
     <style>
         .payment-options {
             display: flex;
@@ -34,28 +34,12 @@
         .btn-virtual { background-color: #3498db; color: white; }
         .btn-secondary { background-color: #95a5a6; color: white; margin-top: 5px;}
         
-        /* --- ESTILOS NUEVOS PARA NAVEGACIÓN DE CUOTAS --- */
-        .btn-nav {
-            background-color: #9b59b6; /* Morado */
-            color: white;
-            font-size: 1.2em; /* Flecha más grande */
-            padding: 5px 12px;
-        }
         .header-dynamic {
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 10px;
-        }
-        .btn-reset-view {
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.85em;
         }
         
         .hidden { display: none !important; }
@@ -114,7 +98,7 @@
                     <div class="menu-button-icon">🧾</div>
                     <div class="menu-button-text">
                         <strong>Ver Mis Deudas</strong>
-                        <span>Solo vencidas y mes actual</span>
+                        <span>Gestionar pendientes e historial</span>
                     </div>
                 </button>
             </div>
@@ -136,16 +120,23 @@
             
             <div id="view-debts-section" class="app-section hidden">
                 <div class="card">
-                    <div class="header-dynamic">
-                        <h3 id="pendientes-title">Deudas Pendientes</h3>
-                        <button id="btn-reset-view" class="btn-reset-view hidden" onclick="resetView()">🔄 Volver a Hoy</button>
+                    
+                    <div class="header-container">
+                        <div class="view-selector" id="view-selector-btn">
+                            <h3 id="current-view-title" style="margin: 0; display: inline-block;">Deudas Pendientes</h3>
+                            <span class="arrow-icon" style="margin-left: 8px;">▼</span>
+                        </div>
+                        
+                        <div id="view-dropdown" class="dropdown-menu hidden-menu">
+                            <div class="dropdown-item" onclick="changeViewFilter('pendientes')">⚡ Deudas Pendientes</div>
+                            <div class="dropdown-item" onclick="changeViewFilter('pagadas')">✅ Historial de Pagos</div>
+                            <div class="dropdown-item" onclick="changeViewFilter('proximas')">📅 Deudas Próximas (> 2 cuotas)</div>
+                        </div>
                     </div>
-                    <div id="lista-deudas-pendientes"></div>
+
+                    <div id="lista-deudas-main"></div>
                 </div>
-                <div class="card">
-                    <h3>Historial de Pagos</h3>
-                    <div id="lista-deudas-pagadas"></div>
-                </div>
+                
                 <button class="back-button">← Volver al Menú</button>
             </div>
         </main>

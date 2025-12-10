@@ -77,8 +77,83 @@ main { width: 100%; max-width: 900px; margin: 30px auto; padding: 0 20px; box-si
 #form-deuda input { padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: #111827; color: var(--text-color); font-size: 16px; }
 #form-deuda button { padding: 12px; border: none; border-radius: 6px; background-color: var(--primary-color); color: white; font-weight: 500; cursor: pointer; font-size: 16px; }
 
+/* --- NUEVO: ESTILOS PARA MENÚ DESPLEGABLE (FILTRO) --- */
+.header-container {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.view-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 10px 15px;
+    border-radius: 8px;
+    transition: background 0.3s;
+    border: 1px solid transparent;
+}
+
+.view-selector:hover {
+    background: rgba(255, 255, 255, 0.05); /* Efecto hover sutil para modo oscuro */
+    border-color: var(--border-color);
+}
+
+.arrow-icon {
+    font-size: 0.8em;
+    transition: transform 0.3s;
+    color: var(--primary-color);
+}
+
+.arrow-icon.rotate {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: var(--surface-color); /* Fondo oscuro */
+    min-width: 250px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5); /* Sombra fuerte para contraste */
+    z-index: 100;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.dropdown-item {
+    padding: 15px 20px;
+    cursor: pointer;
+    display: block;
+    color: var(--text-color);
+    font-weight: 500;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Separador sutil */
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.hidden-menu {
+    display: none;
+}
+
 /* --- Listas --- */
-#lista-deudas-pendientes, #lista-deudas-pagadas { max-height: 300px; overflow-y: auto; padding-right: 10px; }
+#lista-deudas-pendientes, #lista-deudas-pagadas, #lista-deudas-main { 
+    max-height: 500px; /* Aumentado un poco para mejor visión */
+    overflow-y: auto; 
+    padding-right: 10px; 
+}
+
 .deuda { display: flex; flex-flow: row wrap; align-items: center; padding: 15px; background-color: #111827; margin-bottom: 10px; border-radius: 6px; position: relative; overflow: hidden; border-left: 5px solid #555; }
 .deuda-info { flex-grow: 1; margin-right: 15px; }
 .deuda-actions { display: flex; gap: 10px; flex-shrink: 0; }
@@ -96,7 +171,10 @@ main { width: 100%; max-width: 900px; margin: 30px auto; padding: 0 20px; box-si
     color: white; padding: 2px 30px; font-size: 10px; font-weight: bold; transform: rotate(45deg);
 }
 
-.deuda.alerta-semana {
+/* MODIFICACIÓN AQUÍ: AHORA AMBAS ALERTAS DE TIEMPO CERCANO COMPARTEN EL MISMO ESTILO VISUAL */
+
+.deuda.alerta-semana, 
+.deuda.alerta-hoy { /* Aplicamos el mismo estilo a "alerta-hoy" y "alerta-semana" */
     border-left-color: var(--warning-color);
     background-color: #3e371a; /* Fondo amarillento sutil */
 }
@@ -106,8 +184,8 @@ main { width: 100%; max-width: 900px; margin: 30px auto; padding: 0 20px; box-si
 .texto-amarillo { color: var(--warning-color); font-weight: bold; margin-left: 5px; font-size: 0.9em; }
 
 /* Deudas Pagadas */
-#lista-deudas-pagadas .deuda { background-color: #222c38; border-left-color: var(--success-color); opacity: 0.7; }
-#lista-deudas-pagadas .deuda-info { text-decoration: line-through; color: var(--text-muted); }
+.deuda.pagado { background-color: #222c38; border-left-color: var(--success-color); opacity: 0.7; }
+.deuda.pagado .deuda-info { text-decoration: none; color: var(--text-muted); }
 
 /* --- Agrupación por Meses (Movido fuera del Media Query para que funcione siempre) --- */
 .titulo-mes {
