@@ -35,18 +35,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const editForm = document.getElementById('edit-form');
     const paymentModal = document.getElementById('payment-modal');
     
-    // --- NUEVO: Elementos específicos para la lógica de pago/fotos ---
+    // Elementos de pago y fotos
     const paymentButtonsContainer = document.getElementById('payment-buttons');
     const uploadSection = document.getElementById('upload-section');
     const comprobanteInput = document.getElementById('comprobante-input');
     const confirmUploadBtn = document.getElementById('confirm-upload-btn');
     const cancelButtons = document.querySelectorAll('.cancel-btn');
     
+    // Elementos para la vista previa
+    const previewContainer = document.getElementById('preview-container');
+    const imgPreview = document.getElementById('img-preview');
+    
     let currentDebtIdToPay = null;
     let checkInterval = null;
 
     // --------------------------------------------------------------------------
-    // 3. FUNCIONES HELPER (FECHAS Y CÁLCULOS)
+    // 3. FUNCIONES HELPER
     // --------------------------------------------------------------------------
     const getLocalISOString = () => {
         const d = new Date();
@@ -68,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatPaymentDate = (isoString) => {
         if (!isoString) return '';
         const date = new Date(isoString);
-        return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+        return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
     };
 
     const addMonthsToDate = (dateString, monthsToAdd) => {
@@ -90,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --------------------------------------------------------------------------
-    // 4. MANEJO DE VISTAS Y NAVEGACIÓN
+    // 4. MANEJO DE VISTAS
     // --------------------------------------------------------------------------
     const showView = (viewToShow) => {
         [loginView, registerView, appView].forEach(v => v.classList.add('hidden'));
@@ -110,20 +114,19 @@ document.addEventListener('DOMContentLoaded', () => {
     goToViewBtn.addEventListener('click', () => { renderAllDebts(); showSection(viewDebtsSection, "Deudas y Pagos"); });
     backButtons.forEach(btn => btn.addEventListener('click', () => showSection(menuSection, "Panel Principal")));
     
-    // Botones Cancelar (Cierran cualquier modal)
     cancelButtons.forEach(btn => btn.addEventListener('click', () => {
         const modal = btn.closest('.modal-overlay'); 
         if (modal) {
             modal.classList.add('hidden');
-            // Resetear estado del modal de pago si se cierra
             if (modal.id === 'payment-modal') {
                 currentDebtIdToPay = null;
+                if(window.resetPaymentModalUI) window.resetPaymentModalUI();
             }
         }
     }));
 
     // --------------------------------------------------------------------------
-    // 5. LÓGICA DE SESIÓN (AUTH)
+    // 5. AUTH
     // --------------------------------------------------------------------------
     const checkSessionOnLoad = async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -153,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         btn.textContent = originalText; btn.disabled = false;
-
         if (error) alert('Error: ' + error.message);
     });
 
@@ -189,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --------------------------------------------------------------------------
-    // 6. LÓGICA DE NOTIFICACIONES Y DEUDAS
+    // 6. NOTIFICACIONES Y RENDERIZADO
     // --------------------------------------------------------------------------
     const checkDebtsDueToday = async (userId) => {
         const hoyString = getLocalISOString();
@@ -283,7 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const el = document.createElement('div');
                 el.className = `deuda ${statusClass}`;
-                
                 el.innerHTML = `
                     <div class="deuda-info">
                         <strong>${cleanDebtName(deuda.nombre)} ${statusLabel}</strong><br>
@@ -300,93 +301,150 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         pagadasContainer.innerHTML = '';
+        pagadas.sort((a, b) => new Date(b.fecha_pago_real || b.created_at) - new Date(a.fecha_pago_real || a.created_at));
+
         pagadas.forEach(deuda => {
             const el = document.createElement('div');
             el.className = 'deuda pagado';
             const metodoTexto = deuda.metodo_pago ? ` con ${deuda.metodo_pago}` : '';
-            // Si hay comprobante, mostramos un link
+            const fechaPagoMostrar = deuda.fecha_pago_real ? deuda.fecha_pago_real : deuda.created_at;
+            
             const linkComprobante = deuda.comprobante_url 
                 ? `<br><a href="${deuda.comprobante_url}" target="_blank" style="color: #3498db; text-decoration: underline; font-size: 0.9em;">Ver Comprobante</a>` 
                 : '';
             
-            el.innerHTML = `<div class="deuda-info"><strong>${deuda.nombre}</strong><br>S/ ${deuda.monto} - Pagado${metodoTexto} el ${formatPaymentDate(deuda.created_at)}${linkComprobante}</div>`;
+            el.innerHTML = `<div class="deuda-info"><strong>${deuda.nombre}</strong><br>S/ ${deuda.monto} - Pagado${metodoTexto} el ${formatPaymentDate(fechaPagoMostrar)}${linkComprobante}</div>`;
             pagadasContainer.appendChild(el);
         });
     };
 
     // --------------------------------------------------------------------------
-    // 7. LÓGICA DE PAGOS (Y SUBIDA DE FOTOS)
+    // 7. LÓGICA DE PAGOS (SUBIDA DE FOTOS CON VALIDACIÓN OCR)
     // --------------------------------------------------------------------------
     
-    // Función auxiliar para resetear la interfaz del modal
     window.resetPaymentModalUI = () => {
         if(paymentButtonsContainer) paymentButtonsContainer.classList.remove('hidden');
         if(uploadSection) uploadSection.classList.add('hidden');
         if(comprobanteInput) comprobanteInput.value = ''; 
+        if(previewContainer) previewContainer.classList.add('hidden');
+        if(imgPreview) imgPreview.src = '';
     };
 
-    // Abrir Modal
     window.openPaymentModal = (id) => {
         currentDebtIdToPay = id;
-        window.resetPaymentModalUI(); // Limpia la vista por si acaso
+        window.resetPaymentModalUI();
         paymentModal.classList.remove('hidden');
     };
 
-    // Procesar selección inicial (Efectivo vs Virtual)
     window.processPayment = async (metodo) => {
         if (!currentDebtIdToPay) return;
-
-        // Si es Efectivo: NO pagar aún. Mostrar subida de foto.
         if (metodo === 'Efectivo') {
             paymentButtonsContainer.classList.add('hidden');
             uploadSection.classList.remove('hidden');
             return;
         }
-
-        // Si es Virtual: Confirmar y pagar directo
         if (!confirm(`¿Confirmar pago con ${metodo}?`)) return;
         executePayment(metodo, null);
     };
 
-    // Click en botón "Confirmar y Guardar" (Para la foto)
+    // Listener para previsualización (Vista previa de imagen)
+    if(comprobanteInput) {
+        comprobanteInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+                if (!validTypes.includes(file.type)) {
+                    alert('❌ Formato no válido. Por favor sube una imagen (JPG o PNG).');
+                    this.value = ''; 
+                    previewContainer.classList.add('hidden');
+                    return;
+                }
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                if (file.size > maxSize) {
+                    alert('⚠️ La imagen es demasiado pesada (Máx 5MB).');
+                    this.value = '';
+                    previewContainer.classList.add('hidden');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if(imgPreview) imgPreview.src = e.target.result;
+                    if(previewContainer) previewContainer.classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // --- LISTENER PRINCIPAL: VALIDACIÓN INTELIGENTE Y SUBIDA ---
     if(confirmUploadBtn) {
         confirmUploadBtn.addEventListener('click', async () => {
             const file = comprobanteInput.files[0];
             
+            // 1. Verificación básica de existencia
             if (!file) {
-                alert("Por favor selecciona una imagen del comprobante.");
+                alert("⚠️ Por favor selecciona una imagen del comprobante.");
                 return;
             }
 
-            confirmUploadBtn.textContent = "Subiendo...";
+            // Guardamos el texto original del botón para restaurarlo después
+            const originalText = "Confirmar y Guardar";
+            confirmUploadBtn.textContent = "🕵️ Analizando comprobante...";
             confirmUploadBtn.disabled = true;
 
             try {
-                // A. Nombre único para el archivo
-                const fileName = `${Date.now()}_${currentDebtIdToPay}_${file.name}`;
+                // -----------------------------------------------------------------
+                // A. PASO DE VALIDACIÓN INTELIGENTE (OCR)
+                // -----------------------------------------------------------------
+                // Palabras clave que esperamos en un recibo real
+                const palabrasClave = [
+                    'total', 'importe', 'monto', 's/', 'soles', 'fecha', 'hora', 
+                    'destino', 'yape', 'plin', 'transferencia', 'pago', 'exitoso', 
+                    'constancia', 'banco', 'operación', 'bcp', 'bbva', 'interbank', 'scotiabank',
+                    'recibo', 'ticket', 'confirmación'
+                ];
                 
-                // B. Subir a Supabase
+                // Ejecutamos Tesseract para leer la imagen (español)
+                const { data: { text } } = await Tesseract.recognize(file, 'spa');
+                const textoEncontrado = text.toLowerCase();
+                
+                // Verificamos si al menos UNA palabra clave existe
+                const esComprobanteValido = palabrasClave.some(palabra => textoEncontrado.includes(palabra));
+
+                if (!esComprobanteValido) {
+                    alert("¡La imagen no parece ser un comprobante válido!.\n\nEl sistema no detectó palabras clave como 'Total', 'Fecha', 'Yape', 'Monto' o 'S/'.\n\nPor favor sube una foto clara del comprobante.");
+                    confirmUploadBtn.textContent = originalText;
+                    confirmUploadBtn.disabled = false;
+                    return; // ⛔ DETENEMOS EL PROCESO AQUÍ
+                }
+
+                // -----------------------------------------------------------------
+                // B. PASO DE SUBIDA (SI PASÓ LA VALIDACIÓN)
+                // -----------------------------------------------------------------
+                confirmUploadBtn.textContent = "Subiendo archivo...";
+
+                const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+                const fileName = `${Date.now()}_${currentDebtIdToPay}_${cleanFileName}`;
+                
                 const { data: storageData, error: storageError } = await supabase
                     .storage
                     .from('comprobantes')
-                    .upload(fileName, file);
+                    .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
                 if (storageError) throw storageError;
 
-                // C. Obtener URL pública
                 const { data: { publicUrl } } = supabase
                     .storage
                     .from('comprobantes')
                     .getPublicUrl(fileName);
 
-                // D. Guardar pago
+                // C. REGISTRAR PAGO
                 await executePayment('Efectivo', publicUrl);
 
             } catch (error) {
                 console.error(error);
-                alert('Error al subir el comprobante: ' + error.message);
-            } finally {
-                confirmUploadBtn.textContent = "Confirmar y Guardar";
+                alert('❌ Ocurrió un error inesperado: ' + error.message);
+                confirmUploadBtn.textContent = originalText;
                 confirmUploadBtn.disabled = false;
             }
         });
@@ -396,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const executePayment = async (metodo, comprobanteUrl = null) => {
         const updateData = { 
             pagado: true, 
-            created_at: new Date(),
+            fecha_pago_real: new Date(), 
             metodo_pago: metodo,
             comprobante_url: comprobanteUrl 
         };
@@ -409,16 +467,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (error) {
             console.error(error);
             alert('Error al procesar pago: ' + error.message);
+            if(confirmUploadBtn) {
+                confirmUploadBtn.textContent = "Confirmar y Guardar";
+                confirmUploadBtn.disabled = false;
+            }
         } else {
             paymentModal.classList.add('hidden');
             currentDebtIdToPay = null;
             renderAllDebts();
-            alert("Pago registrado correctamente.");
+            if(confirmUploadBtn) {
+                confirmUploadBtn.textContent = "Confirmar y Guardar";
+                confirmUploadBtn.disabled = false;
+            }
+            alert("✅ Pago validado y registrado correctamente.");
         }
     };
 
     // --------------------------------------------------------------------------
-    // 8. CREACIÓN Y EDICIÓN DE DEUDAS
+    // 8. CREAR Y EDITAR
     // --------------------------------------------------------------------------
     formDeuda.addEventListener('submit', async (e) => {
         e.preventDefault();
