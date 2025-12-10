@@ -26,16 +26,38 @@
             cursor: pointer;
             font-weight: bold;
             transition: transform 0.2s;
-            width: 100%; /* Asegura que ocupen el ancho disponible */
+            width: 100%; 
         }
         .payment-btn:hover { transform: scale(1.02); }
         
-        /* Estilos para los botones */
-        .btn-efectivo { background-color: #2ecc71; color: white; } /* Verde */
-        .btn-virtual { background-color: #3498db; color: white; }  /* Azul */
-        .btn-secondary { background-color: #95a5a6; color: white; margin-top: 5px;} /* Gris */
+        .btn-efectivo { background-color: #2ecc71; color: white; }
+        .btn-virtual { background-color: #3498db; color: white; }
+        .btn-secondary { background-color: #95a5a6; color: white; margin-top: 5px;}
         
-        /* Utilidad para ocultar secciones */
+        /* --- ESTILOS NUEVOS PARA NAVEGACIÓN DE CUOTAS --- */
+        .btn-nav {
+            background-color: #9b59b6; /* Morado */
+            color: white;
+            font-size: 1.2em; /* Flecha más grande */
+            padding: 5px 12px;
+        }
+        .header-dynamic {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .btn-reset-view {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        
         .hidden { display: none !important; }
     </style>
 </head>
@@ -114,7 +136,10 @@
             
             <div id="view-debts-section" class="app-section hidden">
                 <div class="card">
-                    <h3>Deudas Pendientes (Mes Actual y Vencidas)</h3>
+                    <div class="header-dynamic">
+                        <h3 id="pendientes-title">Deudas Pendientes</h3>
+                        <button id="btn-reset-view" class="btn-reset-view hidden" onclick="resetView()">🔄 Volver a Hoy</button>
+                    </div>
                     <div id="lista-deudas-pendientes"></div>
                 </div>
                 <div class="card">
@@ -133,19 +158,14 @@
                 <input type="hidden" id="edit-debt-index">
                 <label for="edit-nombre-deuda">Descripción</label>
                 <input type="text" id="edit-nombre-deuda">
-                
                 <label for="edit-monto-deuda">Monto (S/)</label>
                 <input type="number" id="edit-monto-deuda">
-                
                 <label for="edit-tasa-interes">Tasa de Interés Anual (%)</label>
                 <input type="number" id="edit-tasa-interes">
-                
                 <label for="edit-numero-meses">Número de Meses</label>
                 <input type="number" id="edit-numero-meses">
-                
                 <label for="edit-fecha-pago">Fecha de Vencimiento</label>
                 <input type="date" id="edit-fecha-pago">
-                
                 <div class="modal-actions">
                     <button type="button" class="cancel-btn">Cerrar</button>
                     <button type="submit">Guardar Cambios</button>
@@ -157,7 +177,6 @@
     <div id="payment-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-width: 350px; text-align: center;">
             <h2>Procesar Pago</h2>
-            
             <div id="payment-buttons">
                 <p>Selecciona el medio de pago:</p>
                 <div class="payment-options">
@@ -166,23 +185,18 @@
                 </div>
                 <button type="button" class="cancel-btn payment-btn btn-secondary">Cancelar</button>
             </div>
-
             <div id="upload-section" class="hidden" style="margin-top: 15px;">
                 <p style="margin-bottom: 10px;">📸 <strong>Adjuntar Comprobante</strong><br><small>(Solo imágenes JPG/PNG - Máx 5MB)</small></p>
-                
                 <input type="file" id="comprobante-input" accept="image/jpeg, image/png, image/webp" style="margin-bottom: 10px; width: 100%; padding: 10px; border: 1px dashed #ccc;">
-                
                 <div id="preview-container" class="hidden" style="margin-bottom: 15px; border: 1px solid #ddd; padding: 5px; border-radius: 8px; background-color: #f9f9f9;">
                     <p style="font-size: 12px; color: #666; margin-bottom: 5px;">Vista previa:</p>
                     <img id="img-preview" src="" alt="Vista previa" style="max-width: 100%; max-height: 200px; border-radius: 4px; display: block; margin: 0 auto;">
                 </div>
-
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <button class="payment-btn btn-efectivo" id="confirm-upload-btn">Confirmar y Guardar</button>
                     <button class="payment-btn btn-secondary" onclick="resetPaymentModalUI()">Atrás</button>
                 </div>
             </div>
-
         </div>
     </div>
 
