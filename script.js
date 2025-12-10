@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Guardamos el texto original del botón para restaurarlo después
             const originalText = "Confirmar y Guardar";
-            confirmUploadBtn.textContent = "🕵️ Analizando comprobante...";
+            confirmUploadBtn.textContent = "Analizando comprobante...";
             confirmUploadBtn.disabled = true;
 
             try {
@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const esComprobanteValido = palabrasClave.some(palabra => textoEncontrado.includes(palabra));
 
                 if (!esComprobanteValido) {
-                    alert("¡La imagen no parece ser un comprobante válido!.\n\nEl sistema no detectó palabras clave como 'Total', 'Fecha', 'Yape', 'Monto' o 'S/'.\n\nPor favor sube una foto clara del comprobante.");
+                    alert("¡La imagen no parece ser un comprobante válido!.\n\ \nPor favor sube una foto clara del comprobante.");
                     confirmUploadBtn.textContent = originalText;
                     confirmUploadBtn.disabled = false;
                     return; // ⛔ DETENEMOS EL PROCESO AQUÍ
