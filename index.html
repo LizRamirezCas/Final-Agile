@@ -22,12 +22,17 @@
             cursor: pointer;
             font-weight: bold;
             transition: transform 0.2s;
+            width: 100%; /* Asegura que ocupen el ancho disponible */
         }
         .payment-btn:hover { transform: scale(1.02); }
         
-        /* Estilos para los dos botones solicitados */
+        /* Estilos para los botones */
         .btn-efectivo { background-color: #2ecc71; color: white; } /* Verde */
         .btn-virtual { background-color: #3498db; color: white; }  /* Azul */
+        .btn-secondary { background-color: #95a5a6; color: white; margin-top: 5px;} /* Gris */
+        
+        /* Utilidad para ocultar secciones */
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -147,13 +152,28 @@
 
     <div id="payment-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-width: 350px; text-align: center;">
-            <h2>¿Cómo vas a pagar?</h2>
-            <p>Selecciona el medio de pago:</p>
-            <div class="payment-options">
-                <button class="payment-btn btn-efectivo" onclick="processPayment('Efectivo')">💵 Efectivo</button>
-                <button class="payment-btn btn-virtual" onclick="processPayment('Virtual')">📲 Virtual</button>
+            <h2>Procesar Pago</h2>
+            
+            <div id="payment-buttons">
+                <p>Selecciona el medio de pago:</p>
+                <div class="payment-options">
+                    <button class="payment-btn btn-efectivo" onclick="processPayment('Efectivo')">💵 Efectivo / Depósito</button>
+                    <button class="payment-btn btn-virtual" onclick="processPayment('Virtual')">📲 Yape / Plin / Virtual</button>
+                </div>
+                <button type="button" class="cancel-btn payment-btn btn-secondary">Cancelar</button>
             </div>
-            <button type="button" class="cancel-btn" style="width: 100%;">Cancelar</button>
+
+            <div id="upload-section" class="hidden" style="margin-top: 15px;">
+                <p style="margin-bottom: 10px;">📸 <strong>Adjuntar Comprobante</strong><br><small>(Obligatorio para Efectivo)</small></p>
+                
+                <input type="file" id="comprobante-input" accept="image/*" style="margin-bottom: 15px; width: 100%; padding: 10px; border: 1px dashed #ccc;">
+                
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="payment-btn btn-efectivo" id="confirm-upload-btn">Confirmar y Guardar</button>
+                    <button class="payment-btn btn-secondary" onclick="resetPaymentModalUI()">Atrás</button>
+                </div>
+            </div>
+
         </div>
     </div>
 

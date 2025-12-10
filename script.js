@@ -1,16 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --------------------------------------------------------------------------
+    // 1. CONFIGURACIÓN SUPABASE
+    // --------------------------------------------------------------------------
     const SUPABASE_URL = 'https://ljpbmrhkndwgsqdhmpks.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqcGJtcmhrbmR3Z3NxZGhtcGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMTk2MTIsImV4cCI6MjA4MDc5NTYxMn0.LWsHW_EHdOgbkI8gkqNdu0cCYRQO25b22bxOpigqT4A';
     
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Elementos DOM
+    // --------------------------------------------------------------------------
+    // 2. REFERENCIAS DOM (ELEMENTOS)
+    // --------------------------------------------------------------------------
     const loginView = document.getElementById('login-view');
     const registerView = document.getElementById('register-view');
     const appView = document.getElementById('app-view');
     const menuSection = document.getElementById('menu-section');
     const addDebtSection = document.getElementById('add-debt-section');
     const viewDebtsSection = document.getElementById('view-debts-section');
+    
+    // Formularios y Botones Generales
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
     const appHeaderTitle = document.getElementById('app-header-title');
@@ -22,17 +29,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const goToAddBtn = document.getElementById('go-to-add-btn');
     const goToViewBtn = document.getElementById('go-to-view-btn');
     const backButtons = document.querySelectorAll('.back-button');
+    
+    // Modales
     const editModal = document.getElementById('edit-modal');
     const editForm = document.getElementById('edit-form');
-    
-    // Elementos nuevos para pagos
     const paymentModal = document.getElementById('payment-modal');
-    const cancelButtons = document.querySelectorAll('.cancel-btn'); 
-    let currentDebtIdToPay = null; 
-
+    
+    // --- NUEVO: Elementos específicos para la lógica de pago/fotos ---
+    const paymentButtonsContainer = document.getElementById('payment-buttons');
+    const uploadSection = document.getElementById('upload-section');
+    const comprobanteInput = document.getElementById('comprobante-input');
+    const confirmUploadBtn = document.getElementById('confirm-upload-btn');
+    const cancelButtons = document.querySelectorAll('.cancel-btn');
+    
+    let currentDebtIdToPay = null;
     let checkInterval = null;
 
-    // --- HELPER PARA FECHA LOCAL YYYY-MM-DD ---
+    // --------------------------------------------------------------------------
+    // 3. FUNCIONES HELPER (FECHAS Y CÁLCULOS)
+    // --------------------------------------------------------------------------
     const getLocalISOString = () => {
         const d = new Date();
         const year = d.getFullYear();
@@ -41,7 +56,42 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${year}-${month}-${day}`;
     };
 
-    // Mostrar vistas
+    const getMonthName = (dateString) => {
+        if (!dateString) return 'Sin fecha';
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(year, month - 1, day); 
+        return date.toLocaleString('es-ES', { month: 'long' });
+    };
+
+    const cleanDebtName = (name) => name ? name.trim() : 'Sin descripción';
+
+    const formatPaymentDate = (isoString) => {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    const addMonthsToDate = (dateString, monthsToAdd) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        date.setMonth(date.getMonth() + monthsToAdd);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    const calculateMonthlyInstallment = (monto, tasaAnual, meses) => {
+        const saldo = parseFloat(monto);
+        const n = parseInt(meses);
+        if (n <= 1) return saldo;
+        const i = (parseFloat(tasaAnual || 0) / 100) / 12;
+        return i > 0 ? saldo * ((i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1)) : saldo / n;
+    };
+
+    // --------------------------------------------------------------------------
+    // 4. MANEJO DE VISTAS Y NAVEGACIÓN
+    // --------------------------------------------------------------------------
     const showView = (viewToShow) => {
         [loginView, registerView, appView].forEach(v => v.classList.add('hidden'));
         if (viewToShow && viewToShow.classList) viewToShow.classList.remove('hidden');
@@ -60,25 +110,21 @@ document.addEventListener('DOMContentLoaded', () => {
     goToViewBtn.addEventListener('click', () => { renderAllDebts(); showSection(viewDebtsSection, "Deudas y Pagos"); });
     backButtons.forEach(btn => btn.addEventListener('click', () => showSection(menuSection, "Panel Principal")));
     
+    // Botones Cancelar (Cierran cualquier modal)
     cancelButtons.forEach(btn => btn.addEventListener('click', () => {
         const modal = btn.closest('.modal-overlay'); 
         if (modal) {
             modal.classList.add('hidden');
-            if (modal.id === 'edit-modal') {
-                const inputs = modal.querySelectorAll('input');
-                inputs.forEach(input => input.removeAttribute('readonly'));
-                const saveBtn = modal.querySelector('button[type="submit"]');
-                if(saveBtn) saveBtn.style.display = 'block';
-                const title = modal.querySelector('h2');
-                if(title) title.textContent = 'Editar Deuda';
-            }
+            // Resetear estado del modal de pago si se cierra
             if (modal.id === 'payment-modal') {
                 currentDebtIdToPay = null;
             }
         }
     }));
 
-    // Manejo de sesión
+    // --------------------------------------------------------------------------
+    // 5. LÓGICA DE SESIÓN (AUTH)
+    // --------------------------------------------------------------------------
     const checkSessionOnLoad = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
@@ -105,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const originalText = btn.textContent;
         btn.textContent = "Verificando..."; btn.disabled = true;
 
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         btn.textContent = originalText; btn.disabled = false;
 
         if (error) alert('Error: ' + error.message);
@@ -142,39 +188,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3600000); 
     };
 
-    const getMonthName = (dateString) => {
-        if (!dateString) return 'Sin fecha';
-        const [year, month, day] = dateString.split('-').map(Number);
-        const date = new Date(year, month - 1, day); 
-        return date.toLocaleString('es-ES', { month: 'long' });
-    };
-
-    const cleanDebtName = (name) => name ? name.trim() : 'Sin descripción';
-
-    const formatPaymentDate = (isoString) => {
-        if (!isoString) return '';
-        const date = new Date(isoString);
-        return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
-    };
-
-    const addMonthsToDate = (dateString, monthsToAdd) => {
-        const [year, month, day] = dateString.split('-').map(Number);
-        const date = new Date(year, month - 1, day);
-        date.setMonth(date.getMonth() + monthsToAdd);
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    };
-
-    const calculateMonthlyInstallment = (monto, tasaAnual, meses) => {
-        const saldo = parseFloat(monto);
-        const n = parseInt(meses);
-        if (n <= 1) return saldo;
-        const i = (parseFloat(tasaAnual || 0) / 100) / 12;
-        return i > 0 ? saldo * ((i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1)) : saldo / n;
-    };
-
+    // --------------------------------------------------------------------------
+    // 6. LÓGICA DE NOTIFICACIONES Y DEUDAS
+    // --------------------------------------------------------------------------
     const checkDebtsDueToday = async (userId) => {
         const hoyString = getLocalISOString();
         const { data: deudasHoy } = await supabase
@@ -200,7 +216,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- MODIFICADO: Renderizar deudas SIN Google Calendar ---
     const renderAllDebts = async () => {
         const pendientesContainer = document.getElementById('lista-deudas-pendientes');
         const pagadasContainer = document.getElementById('lista-deudas-pagadas');
@@ -289,26 +304,101 @@ document.addEventListener('DOMContentLoaded', () => {
             const el = document.createElement('div');
             el.className = 'deuda pagado';
             const metodoTexto = deuda.metodo_pago ? ` con ${deuda.metodo_pago}` : '';
-            el.innerHTML = `<div class="deuda-info"><strong>${deuda.nombre}</strong><br>S/ ${deuda.monto} - Pagado${metodoTexto} el ${formatPaymentDate(deuda.created_at)}</div>`;
+            // Si hay comprobante, mostramos un link
+            const linkComprobante = deuda.comprobante_url 
+                ? `<br><a href="${deuda.comprobante_url}" target="_blank" style="color: #3498db; text-decoration: underline; font-size: 0.9em;">Ver Comprobante</a>` 
+                : '';
+            
+            el.innerHTML = `<div class="deuda-info"><strong>${deuda.nombre}</strong><br>S/ ${deuda.monto} - Pagado${metodoTexto} el ${formatPaymentDate(deuda.created_at)}${linkComprobante}</div>`;
             pagadasContainer.appendChild(el);
         });
     };
 
-    // 1. Abrir Modal
+    // --------------------------------------------------------------------------
+    // 7. LÓGICA DE PAGOS (Y SUBIDA DE FOTOS)
+    // --------------------------------------------------------------------------
+    
+    // Función auxiliar para resetear la interfaz del modal
+    window.resetPaymentModalUI = () => {
+        if(paymentButtonsContainer) paymentButtonsContainer.classList.remove('hidden');
+        if(uploadSection) uploadSection.classList.add('hidden');
+        if(comprobanteInput) comprobanteInput.value = ''; 
+    };
+
+    // Abrir Modal
     window.openPaymentModal = (id) => {
         currentDebtIdToPay = id;
+        window.resetPaymentModalUI(); // Limpia la vista por si acaso
         paymentModal.classList.remove('hidden');
     };
 
-    // 2. Procesar Pago
+    // Procesar selección inicial (Efectivo vs Virtual)
     window.processPayment = async (metodo) => {
         if (!currentDebtIdToPay) return;
-        if (!confirm(`¿Confirmar pago ${metodo}?`)) return;
 
+        // Si es Efectivo: NO pagar aún. Mostrar subida de foto.
+        if (metodo === 'Efectivo') {
+            paymentButtonsContainer.classList.add('hidden');
+            uploadSection.classList.remove('hidden');
+            return;
+        }
+
+        // Si es Virtual: Confirmar y pagar directo
+        if (!confirm(`¿Confirmar pago con ${metodo}?`)) return;
+        executePayment(metodo, null);
+    };
+
+    // Click en botón "Confirmar y Guardar" (Para la foto)
+    if(confirmUploadBtn) {
+        confirmUploadBtn.addEventListener('click', async () => {
+            const file = comprobanteInput.files[0];
+            
+            if (!file) {
+                alert("Por favor selecciona una imagen del comprobante.");
+                return;
+            }
+
+            confirmUploadBtn.textContent = "Subiendo...";
+            confirmUploadBtn.disabled = true;
+
+            try {
+                // A. Nombre único para el archivo
+                const fileName = `${Date.now()}_${currentDebtIdToPay}_${file.name}`;
+                
+                // B. Subir a Supabase
+                const { data: storageData, error: storageError } = await supabase
+                    .storage
+                    .from('comprobantes')
+                    .upload(fileName, file);
+
+                if (storageError) throw storageError;
+
+                // C. Obtener URL pública
+                const { data: { publicUrl } } = supabase
+                    .storage
+                    .from('comprobantes')
+                    .getPublicUrl(fileName);
+
+                // D. Guardar pago
+                await executePayment('Efectivo', publicUrl);
+
+            } catch (error) {
+                console.error(error);
+                alert('Error al subir el comprobante: ' + error.message);
+            } finally {
+                confirmUploadBtn.textContent = "Confirmar y Guardar";
+                confirmUploadBtn.disabled = false;
+            }
+        });
+    }
+
+    // Función que realmente guarda en la base de datos
+    const executePayment = async (metodo, comprobanteUrl = null) => {
         const updateData = { 
             pagado: true, 
             created_at: new Date(),
-            metodo_pago: metodo 
+            metodo_pago: metodo,
+            comprobante_url: comprobanteUrl 
         };
 
         const { error } = await supabase
@@ -323,9 +413,13 @@ document.addEventListener('DOMContentLoaded', () => {
             paymentModal.classList.add('hidden');
             currentDebtIdToPay = null;
             renderAllDebts();
+            alert("Pago registrado correctamente.");
         }
     };
 
+    // --------------------------------------------------------------------------
+    // 8. CREACIÓN Y EDICIÓN DE DEUDAS
+    // --------------------------------------------------------------------------
     formDeuda.addEventListener('submit', async (e) => {
         e.preventDefault();
         const { data: { user } } = await supabase.auth.getUser();
