@@ -1,0 +1,149 @@
+:root {
+    --primary-color: #3071c5; --primary-hover: #3a3ad0;
+    --danger-color: #dc3545; --danger-hover: #bb2d3b;
+    --success-color: #198754; --success-hover: #157347;
+    --warning-color: #ffbb33; /* Agregado para alerta amarilla */
+    --background-gradient: linear-gradient(135deg, #1f2937, #111827);
+    --surface-color: #1f2937;
+    --text-color: #e5e7eb;
+    --text-muted: #f7f7f9;
+    --border-color: #374151;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    background: var(--background-gradient); 
+    margin: 0; 
+    color: var(--text-color);
+}
+.hidden { display: none !important; }
+
+/* --- Autenticación --- */
+.view-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; box-sizing: border-box;}
+
+@keyframes glow-pulse {
+    0% { box-shadow: 0 0 50px rgba(175, 11, 35, 0.4), inset 0 0 10px rgba(11, 64, 145, 0.2); }
+    50% { box-shadow: 0 0 30px rgba(212, 4, 253, 0.7), inset 0 0 20px rgba(36, 198, 226, 0.4); }
+    100% { box-shadow: 0 0 20px rgba(96, 238, 224, 0.4), inset 0 0 10px rgba(6, 49, 240, 0.2); }
+}
+
+.auth-box { 
+    width: 100%; max-width: 380px; padding: 40px; background: var(--surface-color); 
+    border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow); 
+    text-align: center; position: relative; z-index: 1; overflow: hidden; transition: all 0.5s ease;
+}
+
+.animated-auth-box::before {
+    content: ''; position: absolute; top: 50%; left: 50%; width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(13, 110, 253, 0.3) 0%, rgba(13, 110, 253, 0) 70%); 
+    border-radius: 50%; transform: translate(-50%, -50%); z-index: -1; 
+    animation: glow-pulse 5s linear infinite alternate; 
+}
+
+.auth-box h1 { color: #ffffff; }
+.auth-box p { color: var(--text-muted); margin-bottom: 24px; }
+.auth-box form input { 
+    width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid var(--border-color); 
+    background-color: #111827; color: var(--text-color); border-radius: 6px; 
+    box-sizing: border-box; box-shadow: 0 0 0 1px var(--border-color); transition: box-shadow 0.3s;
+}
+.auth-box form input:focus { box-shadow: 0 0 0 2px var(--primary-color); outline: none; }
+.auth-box form button { width: 100%; padding: 14px; border: none; border-radius: 6px; background-color: var(--primary-color); color: white; font-weight: bold; cursor: pointer; transition: background-color 0.2s; }
+.auth-switch { font-size: 14px; margin-top: 20px; }
+.auth-switch a { color: var(--primary-color); text-decoration: none; font-weight: bold; }
+
+/* --- Aplicación Principal --- */
+#app-view { width: 100%; align-items: flex-start; }
+header { width: 100%; background-color: rgba(31, 41, 55, 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 2px 4px rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); box-sizing: border-box; position: sticky; top: 0; z-index: 10;}
+.header-content { display: flex; justify-content: space-between; align-items: center; max-width: 900px; margin: 0 auto; padding: 15px 20px; box-sizing: border-box; flex-wrap: wrap; }
+.user-info { display: flex; align-items: center; gap: 15px; }
+#logout-button { background-color: var(--danger-color); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; }
+main { width: 100%; max-width: 900px; margin: 30px auto; padding: 0 20px; box-sizing: border-box; }
+.card { background: var(--surface-color); border: 1px solid var(--border-color); padding: 25px; border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 25px; }
+.card h3 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+.back-button { background: none; border: 1px solid var(--border-color); color: var(--text-color); padding: 10px 15px; border-radius: 6px; margin-top: 20px; cursor: pointer; transition: background-color 0.2s, border-color 0.2s; }
+.back-button:hover { background-color: var(--border-color); border-color: #4b5563; }
+
+/* --- Menú Principal --- */
+#menu-section { display: flex; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+.menu-button { display: flex; align-items: center; gap: 20px; padding: 25px; cursor: pointer; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--surface-color); text-align: left; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+.menu-button:hover { transform: translateY(-5px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); border-color: var(--primary-color); }
+.menu-button-icon { font-size: 2.5em; }
+.menu-button-text strong { display: block; font-size: 1.2em; color: var(--text-color); margin-bottom: 5px; }
+.menu-button-text span { font-size: 0.9em; color: var(--text-muted); }
+
+/* --- Formulario --- */
+#form-deuda { display: flex; flex-direction: column; gap: 15px; }
+#form-deuda input { padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: #111827; color: var(--text-color); font-size: 16px; }
+#form-deuda button { padding: 12px; border: none; border-radius: 6px; background-color: var(--primary-color); color: white; font-weight: 500; cursor: pointer; font-size: 16px; }
+
+/* --- Listas --- */
+#lista-deudas-pendientes, #lista-deudas-pagadas { max-height: 300px; overflow-y: auto; padding-right: 10px; }
+.deuda { display: flex; flex-flow: row wrap; align-items: center; padding: 15px; background-color: #111827; margin-bottom: 10px; border-radius: 6px; position: relative; overflow: hidden; border-left: 5px solid #555; }
+.deuda-info { flex-grow: 1; margin-right: 15px; }
+.deuda-actions { display: flex; gap: 10px; flex-shrink: 0; }
+.action-btn { color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: background-color 0.2s; }
+.action-btn.edit { background-color: var(--primary-color); }
+.action-btn.pay { background-color: var(--success-color); }
+
+/* --- ESTILOS DE ESTADO (ROJO Y AMARILLO) --- */
+.deuda.vencida { 
+    border-left-color: var(--danger-color); 
+    background-color: #3e1a1a; /* Fondo rojizo sutil */
+}
+.deuda.vencida::before {
+    content: 'VENCIDA'; position: absolute; top: 10px; right: -30px; background: var(--danger-color);
+    color: white; padding: 2px 30px; font-size: 10px; font-weight: bold; transform: rotate(45deg);
+}
+
+.deuda.alerta-semana {
+    border-left-color: var(--warning-color);
+    background-color: #3e371a; /* Fondo amarillento sutil */
+}
+
+/* Textos coloreados */
+.texto-rojo { color: var(--danger-color); font-weight: bold; margin-left: 5px; font-size: 0.9em; }
+.texto-amarillo { color: var(--warning-color); font-weight: bold; margin-left: 5px; font-size: 0.9em; }
+
+/* Deudas Pagadas */
+#lista-deudas-pagadas .deuda { background-color: #222c38; border-left-color: var(--success-color); opacity: 0.7; }
+#lista-deudas-pagadas .deuda-info { text-decoration: line-through; color: var(--text-muted); }
+
+/* --- Agrupación por Meses (Movido fuera del Media Query para que funcione siempre) --- */
+.titulo-mes {
+    font-size: 1.5em; color: var(--primary-color); margin-top: 35px; margin-bottom: 15px;
+    padding-bottom: 5px; border-bottom: 2px solid var(--primary-color); text-transform: uppercase; letter-spacing: 1px;
+}
+.mes-agrupador { margin-bottom: 40px; padding: 15px; background-color: rgba(31, 41, 55, 0.5); border-radius: 8px; border: 1px solid var(--border-color); }
+.lista-deudas-mensual { display: flex; flex-direction: column; gap: 10px; }
+.mes-agrupador .deuda { margin-bottom: 0; }
+
+/* --- Modales --- */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
+.modal-content { background: var(--surface-color); padding: 30px; border-radius: 8px; box-shadow: var(--shadow); width: 90%; max-width: 400px; border: 1px solid var(--border-color); }
+.modal-content h2 { margin-top: 0; }
+.modal-content form { display: flex; flex-direction: column; gap: 15px; }
+.modal-content label { font-size: 14px; color: var(--text-muted); margin-bottom: -10px; }
+.modal-content input { padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: #111827; color: var(--text-color); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.modal-actions button { padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+.modal-actions .cancel-btn { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-color); }
+.modal-actions button[type="submit"] { background-color: var(--primary-color); color: white; }
+
+/* --- Responsividad --- */
+@media (max-width: 768px) {
+    main { padding: 0 15px; }
+    .header-content { flex-direction: column; gap: 15px; padding: 20px 15px; }
+    .header-content h2 { text-align: center; width: 100%; margin: 0; }
+    .user-info { width: 100%; display: flex; justify-content: center; }
+    .user-details { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+    #welcome-user { text-align: center; white-space: normal; overflow: visible; word-break: break-word; width: 100%; }
+    #logout-button { width: auto; padding: 10px 25px; }
+    #menu-section { display: flex; flex-direction: column; align-items: center; }
+    .menu-button { width: 90%; max-width: 350px; justify-content: center; text-align: center; }
+    
+    .deuda { flex-direction: column; align-items: flex-start; gap: 15px; }
+    .deuda-info { margin-right: 0; }
+    .deuda-actions { width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .deuda.vencida::before { top: 5px; right: -35px; }
+}

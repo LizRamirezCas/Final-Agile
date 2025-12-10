@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Deudas</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .payment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .payment-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .payment-btn:hover { transform: scale(1.02); }
+        
+        /* Estilos para los dos botones solicitados */
+        .btn-efectivo { background-color: #2ecc71; color: white; } /* Verde */
+        .btn-virtual { background-color: #3498db; color: white; }  /* Azul */
+    </style>
+</head>
+<body>
+
+    <div id="login-view" class="view-container">
+        <div class="auth-box animated-auth-box">
+            <h1>Iniciar Sesión</h1>
+            <p>Bienvenido de nuevo. Ingresa a tu cuenta.</p>
+            <form id="login-form">
+                <input type="email" id="login-username" placeholder="Tu correo electrónico" required>
+                <input type="password" id="login-password" placeholder="Contraseña" required>
+                <button type="submit">Entrar</button>
+            </form>
+            <p class="auth-switch">¿No tienes cuenta? <a href="#" id="go-to-register-link">Créala aquí</a></p>
+        </div>
+    </div>
+
+    <div id="register-view" class="view-container hidden">
+        <div class="auth-box animated-auth-box">
+            <h1>Crear Cuenta</h1>
+            <p>Define un correo y contraseña para empezar.</p>
+            <form id="register-form">
+                <input type="email" id="register-username" placeholder="Tu correo electrónico" required>
+                <input type="password" id="register-password" placeholder="Crea una contraseña (6-15 caracteres)" required minlength="6" maxlength="15">
+                <button type="submit">Crear Cuenta</button>
+            </form>
+            <p class="auth-switch">¿Ya tienes cuenta? <a href="#" id="go-to-login-link">Inicia sesión</a></p>
+        </div>
+    </div>
+
+    <div id="app-view" class="view-container hidden">
+        <header>
+            <div class="header-content">
+                <h2 id="app-header-title">Panel Principal</h2>
+                <div class="user-info">
+                    <div class="user-details">
+                        <span id="welcome-user"></span>
+                        <button id="logout-button">Cerrar Sesión</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <main>
+            <div id="menu-section" class="app-section">
+                <button id="go-to-add-btn" class="menu-button">
+                    <div class="menu-button-icon">➕</div>
+                    <div class="menu-button-text">
+                        <strong>Agregar Nueva Deuda</strong>
+                        <span>Registra un pago pendiente</span>
+                    </div>
+                </button>
+                <button id="go-to-view-btn" class="menu-button">
+                    <div class="menu-button-icon">🧾</div>
+                    <div class="menu-button-text">
+                        <strong>Ver Mis Deudas</strong>
+                        <span>Solo vencidas y mes actual</span>
+                    </div>
+                </button>
+            </div>
+            
+            <div id="add-debt-section" class="app-section hidden">
+                <div class="card">
+                    <h3>Agregar Nueva Deuda</h3>
+                    <form id="form-deuda">
+                        <input type="text" id="nombre-deuda" placeholder="Descripción (Ej: Tarjeta de Crédito)" required>
+                        <input type="number" id="monto-deuda" placeholder="Monto Total (S/)" required min="0.01" step="0.01">
+                        <input type="number" id="tasa-interes" placeholder="Tasa de Interés Anual (%)" min="0" step="0.01">
+                        <input type="number" id="numero-meses" placeholder="Nº de Meses (Ej: 24)" min="1" max="120">
+                        <input type="date" id="fecha-pago" required>
+                        <button type="submit">Guardar Deuda</button>
+                    </form>
+                    <button class="back-button">← Volver al Menú</button>
+                </div>
+            </div>
+            
+            <div id="view-debts-section" class="app-section hidden">
+                <div class="card">
+                    <h3>Deudas Pendientes (Mes Actual y Vencidas)</h3>
+                    <div id="lista-deudas-pendientes"></div>
+                </div>
+                <div class="card">
+                    <h3>Historial de Pagos</h3>
+                    <div id="lista-deudas-pagadas"></div>
+                </div>
+                <button class="back-button">← Volver al Menú</button>
+            </div>
+        </main>
+    </div>
+
+    <div id="edit-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Detalles de la Deuda</h2>
+            <form id="edit-form">
+                <input type="hidden" id="edit-debt-index">
+                <label for="edit-nombre-deuda">Descripción</label>
+                <input type="text" id="edit-nombre-deuda">
+                
+                <label for="edit-monto-deuda">Monto (S/)</label>
+                <input type="number" id="edit-monto-deuda">
+                
+                <label for="edit-tasa-interes">Tasa de Interés Anual (%)</label>
+                <input type="number" id="edit-tasa-interes">
+                
+                <label for="edit-numero-meses">Número de Meses</label>
+                <input type="number" id="edit-numero-meses">
+                
+                <label for="edit-fecha-pago">Fecha de Vencimiento</label>
+                <input type="date" id="edit-fecha-pago">
+                
+                <div class="modal-actions">
+                    <button type="button" class="cancel-btn">Cerrar</button>
+                    <button type="submit">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="payment-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 350px; text-align: center;">
+            <h2>¿Cómo vas a pagar?</h2>
+            <p>Selecciona el medio de pago:</p>
+            <div class="payment-options">
+                <button class="payment-btn btn-efectivo" onclick="processPayment('Efectivo')">💵 Efectivo</button>
+                <button class="payment-btn btn-virtual" onclick="processPayment('Virtual')">📲 Virtual</button>
+            </div>
+            <button type="button" class="cancel-btn" style="width: 100%;">Cancelar</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
