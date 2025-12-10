@@ -50,6 +50,42 @@ document.addEventListener('DOMContentLoaded', () => {
     let checkInterval = null;
 
     // --------------------------------------------------------------------------
+    // 2.1 VALIDACIÓN DE INPUTS (ESTILO NATIVO/CAPTURA)
+    // --------------------------------------------------------------------------
+    const nombreDeudaInput = document.getElementById('nombre-deuda');
+
+    if (nombreDeudaInput) {
+        let errorTimeout;
+
+        nombreDeudaInput.addEventListener('input', function(e) {
+            // Verifica si hay números
+            if (/\d/.test(this.value)) {
+                
+                // 1. Eliminar el número inmediatamente
+                this.value = this.value.replace(/\d/g, '');
+
+                // 2. Definir el mensaje de la burbuja nativa
+                this.setCustomValidity("No se puede escribir números en la descripción");
+                
+                // 3. Disparar la burbuja (Se verá igual a tu captura)
+                this.reportValidity();
+
+                // 4. Limpiar el error interno después de 2 segundos
+                // Esto es necesario para que el navegador no crea que el campo sigue inválido
+                // y te deje enviar el formulario después.
+                if (errorTimeout) clearTimeout(errorTimeout);
+                errorTimeout = setTimeout(() => {
+                    this.setCustomValidity("");
+                }, 2000);
+
+            } else {
+                // Si el usuario borra o escribe letras, limpiamos cualquier error pendiente
+                this.setCustomValidity("");
+            }
+        });
+    }
+
+    // --------------------------------------------------------------------------
     // 3. FUNCIONES HELPER
     // --------------------------------------------------------------------------
     const getLocalISOString = () => {
